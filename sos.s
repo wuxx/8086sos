@@ -8,6 +8,7 @@ bootmsg     db  'start kernel...', 0xD, 0xA, 0
 msgA		db	'task A is running...', 0xD, 0xA, 0
 msgB		db	'task B is running...', 0xD, 0xA, 0
 msgAX       db  'AX: 0X', 0
+msgNL       db 0xD, 0xA, 0
 
 ; 0 - taskA; 1 - taskB
 current_task    dw 0x0
@@ -221,6 +222,9 @@ N0_N9_4:
 	int	0x10
     
     pop ax
+
+    mov si, msgNL
+    call write_message
     ret
 ; -------------------------------------------------------------	
 
