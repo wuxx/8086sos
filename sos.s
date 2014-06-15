@@ -3,49 +3,6 @@
 
 jmp start
 	
-	
-bootmsg     db  'start kernel...', 0xD, 0xA, 0
-msgA		db	'task A is running...', 0xD, 0xA, 0
-msgB		db	'task B is running...', 0xD, 0xA, 0
-msgAX       db  'AX: 0X', 0
-msgNL       db 0xD, 0xA, 0
-
-; 0 - taskA; 1 - taskB
-current_task    dw 0x0
-
-
-taskA_context:
-    dw  0   ; flag
-    dw  0x7c0   ; cs
-    dw  taskA   ; ip
-    dw  0x1100   ; ss   0x10000 - 0x11000
-    dw  0   ; sp
-    dw  0   ; ax
-    dw  0   ; bx
-    dw  0   ; cx
-    dw  0   ; dx
-    dw  0x7c0   ; ds
-    dw  0   ; es
-    dw  0   ; si
-    dw  0   ; di
-    dw  0   ; bp
-			
-taskB_context:
-    dw  0   ; flag
-    dw  0x7c0   ; cs
-    dw  taskB   ; ip
-    dw  0x1200  ; ss   0x11000 - 0x12000
-    dw  0       ; sp
-    dw  0       ; ax
-    dw  0       ; bx
-    dw  0       ; cx
-    dw  0       ; dx
-    dw  0x7c0   ; ds
-    dw  0       ; es
-    dw  0       ; si
-    dw  0       ; di
-    dw  0       ; bp
-
 start:  
     mov ax, 0x7c0
     mov ds, ax
@@ -64,13 +21,38 @@ after_update_cs:
     mov si, bootmsg
     call write_message
 
-    mov ax, 0x12
-    call print_hex
-    call die 
+    sti
+
+    ;mov ax, 0x12
+    ;call print_hex
+    ;call die 
     ;call taskA
     ;push cs
     ;push taskA
     ;ret
+
+    ; set new int9
+;    push es
+;    push ds
+;    mov ax, 0x0
+;    mov ds, ax
+;    mov si, 0x9*0x4
+;
+;    mov di, int9_origin
+;    mov cx, 0x2
+;    cld
+;    rep movsw
+;
+;    pop ds
+;    mov si, int9_new
+;
+;    mov ax, 0x0
+;    mov es, ax
+;    mov di, 0x9*0x4
+;    mov cx, 0x2
+;    cld
+;    rep movsw
+;    pop es
 
     mov [current_task], dword 0x0
     call run
@@ -139,6 +121,12 @@ taskB:
     call write_message
     jmp taskB
 
+int9_entry:
+    mov si, msgB
+    call write_message
+    jmp int9_entry
+    iret
+
 ; -------------------------------------------------------------
 	
 write_message:
@@ -161,73 +149,92 @@ print_hex:
     mov si, msgAX
     call write_message
     
-
+    
     push ax
     ; ah
+    mov cx, 0x4
+    mov bl, 12
+    mov dx, 0xf000
 
-    and ax, 0xf000
-    shr ax, 12
+hex_again:
+    and ax, dx
+
+    push cx
+    mov cl, bl
+    shr ax, cl
+    pop cx
+
     cmp al,0xA
-    jb N0_N9_1
+    jb N0_N9
+NA_NF:
     add al, 0x7
-N0_N9_1:
+N0_N9:
     add al, 0x30
 	mov	ah, 0x0E	; teletype Mode
+    push bx
 	mov	bx, 0007	; white on black attribute
 	int	0x10
+    pop bx
 
     pop ax
     push ax
 
-    and ax, 0x0f00
-    shr ax, 8
-    cmp al,0xA
-    jb N0_N9_2
-    add al, 0x7
-N0_N9_2:
-    add al, 0x30
-
-	mov	ah, 0x0E	; teletype Mode
-	mov	bx, 0007	; white on black attribute
-	int	0x10
-
-    ; al
-    pop ax
-    push ax
-    and ax, 0x00f0
-    shr ax, 4
-
-    cmp al,0xA
-    jb N0_N9_3
-    add al, 0x7
-N0_N9_3:
-    add al, 0x30
-
-	mov	ah, 0x0E	; teletype Mode
-	mov	bx, 0007	; white on black attribute
-	int	0x10
+    shr dx, 4
+    sub bl, 4
+    loop hex_again
 
     pop ax
-    push ax
-    and ax, 0x000f
-
-    cmp al,0xA
-    jb N0_N9_4
-    add al, 0x7
-N0_N9_4:
-    add al, 0x30
-
-	mov	ah, 0x0E	; teletype Mode
-	mov	bx, 0007	; white on black attribute
-	int	0x10
-    
-    pop ax
-
     mov si, msgNL
     call write_message
     ret
 ; -------------------------------------------------------------	
 
+bootmsg     db  'start kernel...', 0xD, 0xA, 0
+msgA		db	'task A is running...', 0xD, 0xA, 0
+msgB		db	'task B is running...', 0xD, 0xA, 0
+msgAX       db  'AX: 0X', 0
+msgNL       db 0xD, 0xA, 0
+
+; 0 - taskA; 1 - taskB
+current_task    dw 0x0
+int9_origin:
+    dw 0    ; ip
+    dw 0    ; cs
+int9_new:
+    dw  int9_entry  ; ip
+    dw  0x7c0     ; cs
+
+taskA_context:
+    dw  0   ; flag
+    dw  0x7c0   ; cs
+    dw  taskA   ; ip
+    dw  0x1100   ; ss   0x10000 - 0x11000
+    dw  0   ; sp
+    dw  0   ; ax
+    dw  0   ; bx
+    dw  0   ; cx
+    dw  0   ; dx
+    dw  0x7c0   ; ds
+    dw  0   ; es
+    dw  0   ; si
+    dw  0   ; di
+    dw  0   ; bp
+			
+taskB_context:
+    dw  0   ; flag
+    dw  0x7c0   ; cs
+    dw  taskB   ; ip
+    dw  0x1200  ; ss   0x11000 - 0x12000
+    dw  0       ; sp
+    dw  0       ; ax
+    dw  0       ; bx
+    dw  0       ; cx
+    dw  0       ; dx
+    dw  0x7c0   ; ds
+    dw  0       ; es
+    dw  0       ; si
+    dw  0       ; di
+    dw  0       ; bp
 
 	times 510-($-$$) db 0           ;填充文件 0.
 	dw 0xAA55                       ;以AA55结束.
