@@ -23,6 +23,18 @@ after_update_cs:
 
     sti
 
+    in al, 0x21   ; read from port 0x21
+    call print_hex
+
+    mov al, 0x00
+    out 0x21, al
+
+    nop
+    nop
+    in al, 0x21
+    call print_hex
+    ;jmp die
+
     ;mov ax, 0x12
     ;call print_hex
     ;call die 
@@ -31,28 +43,30 @@ after_update_cs:
     ;push taskA
     ;ret
 
+
+
     ; set new int9
-;    push es
-;    push ds
-;    mov ax, 0x0
-;    mov ds, ax
-;    mov si, 0x9*0x4
-;
-;    mov di, int9_origin
-;    mov cx, 0x2
-;    cld
-;    rep movsw
-;
-;    pop ds
-;    mov si, int9_new
-;
-;    mov ax, 0x0
-;    mov es, ax
-;    mov di, 0x9*0x4
-;    mov cx, 0x2
-;    cld
-;    rep movsw
-;    pop es
+    push es
+    push ds
+    mov ax, 0x0
+    mov ds, ax
+    mov si, 0x9*0x4
+
+    mov di, int9_origin
+    mov cx, 0x2
+    cld
+    rep movsw
+
+    pop ds
+    mov si, int9_new
+
+    mov ax, 0x0
+    mov es, ax
+    mov di, 0x9*0x4
+    mov cx, 0x2
+    cld
+    rep movsw
+    pop es
 
     mov [current_task], dword 0x0
     call run
@@ -127,6 +141,37 @@ int9_entry:
     jmp int9_entry
     iret
 
+;pic_init:
+;    cli 
+;    mov al, 0x11            ; initialize PICs
+;
+;    out 0x20, al            ; 8259_MASTER
+;    out 0xA0, al            ; 8259_SLAVE
+;
+;    mov al,   0x20          ; interrupt start 32
+;    out 0x21, al
+;
+;    mov al,   0x28          ; interrupt start 40
+;    out 0xA1, al
+;
+;    mov al,   0x04          ; IRQ 2 of 8259_MASTER
+;    out 0x21, al    
+;
+;    mov al,   0x02          ; to 8259_SLAVE
+;    out 0xA1, al
+;
+;    mov al,   0x01          ; 8086 Mode
+;    out 0x21, al
+;    out 0xA1, al
+;
+;    mov al,   0xFF          ; mask all
+;    out 0x21, al
+;    out 0xA1, al
+;    sti 
+;    
+;    mov si, msgPIC
+;    call    write_message
+
 ; -------------------------------------------------------------
 	
 write_message:
@@ -189,9 +234,10 @@ N0_N9:
     ret
 ; -------------------------------------------------------------	
 
-bootmsg     db  'start kernel...', 0xD, 0xA, 0
-msgA		db	'task A is running...', 0xD, 0xA, 0
-msgB		db	'task B is running...', 0xD, 0xA, 0
+bootmsg     db  'start', 0xD, 0xA, 0
+msgPIC      db  'pic', 0xD, 0xA, 0
+msgA		db	'task A ', 0xD, 0xA, 0
+msgB		db	'task B ', 0xD, 0xA, 0
 msgAX       db  'AX: 0X', 0
 msgNL       db 0xD, 0xA, 0
 

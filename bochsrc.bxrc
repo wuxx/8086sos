@@ -22,6 +22,7 @@ boot: a
 
 # where do we send log messages?
 log: bochsout.txt
+debugger_log:bochs_debug.txt
 # disable the mouse, since Tinix is text only
 mouse: enabled=0
 
