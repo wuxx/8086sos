@@ -69,6 +69,7 @@ after_update_cs:
     pop es
 
     mov [current_task], dword 0x0
+    call run
 
 die:
     jmp die
@@ -137,8 +138,7 @@ taskB:
 int9_entry:
     mov si, msgB
     call write_message
-    mov si, int9_origin
-    call ds:[si]
+    jmp int9_entry
     iret
 
 ;pic_init:
