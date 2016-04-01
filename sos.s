@@ -55,7 +55,7 @@ after_update_cs:
     mov di, int9_origin
     mov cx, 0x2
     cld
-    rep movsw
+    rep movsw	; ds:si -> es:di
 
     pop ds
     mov si, int9_new
@@ -68,7 +68,7 @@ after_update_cs:
     rep movsw
     pop es
 
-    mov [current_task], dword 0x0
+    ;mov [current_task], dword 0x0
 
 die:
     jmp die
@@ -137,8 +137,9 @@ taskB:
 int9_entry:
     mov si, msgB
     call write_message
-    mov si, int9_origin
-    call ds:[si]
+    mov es, [int9_origin+2]
+    mov di, [int9_origin+0]
+    call dword far [es:di]
     iret
 
 ;pic_init:
@@ -242,7 +243,9 @@ msgAX       db  'AX: 0X', 0
 msgNL       db 0xD, 0xA, 0
 
 ; 0 - taskA; 1 - taskB
-current_task    dw 0x0
+current_task:
+	dw 0x0
+
 int9_origin:
     dw 0    ; ip
     dw 0    ; cs
