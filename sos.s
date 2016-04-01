@@ -139,7 +139,9 @@ int9_entry:
     call write_message
     mov es, [int9_origin+2]
     mov di, [int9_origin+0]
-    call dword far [es:di]
+    push es
+    push di
+    retf
     iret
 
 ;pic_init:
