@@ -68,16 +68,16 @@ after_update_cs:
     rep movsw
     pop es
 
-    ;mov [current_task], dword 0x0
+    ;mov [current_task], word 0x0
 
-die:
-    jmp die
+;die:
+;   jmp die
 
 run:
     mov ax, [current_task]
     cmp ax, 0
-    je run_taskA
-    call run_taskB
+    je  run_taskA
+    jmp run_taskB
 
 run_taskA:
     mov bp, [taskA_context+26]
@@ -127,12 +127,27 @@ run_taskB:
 taskA:
     mov si, msgA
     call write_message
+    call delay
     jmp taskA
 
 taskB:
     mov si, msgB
     call write_message
+    call delay
     jmp taskB
+
+delay:
+    push ax
+    mov ax, 0xFFFF
+
+dloop:
+    sub ax, 1
+    cmp ax, 0
+    je  end_dloop
+    jmp dloop
+end_dloop:
+    pop ax
+    ret
 
 int9_entry:
     mov si, msgB
@@ -142,7 +157,8 @@ int9_entry:
     push es
     push di
     retf
-    iret
+
+    iret ; this ins not gonna to be excuted, cause origin int9 handler will iret.
 
 ;pic_init:
 ;    cli 
@@ -239,8 +255,8 @@ N0_N9:
 
 bootmsg     db  'start', 0xD, 0xA, 0
 msgPIC      db  'pic', 0xD, 0xA, 0
-msgA		db	'task A ', 0xD, 0xA, 0
-msgB		db	'task B ', 0xD, 0xA, 0
+msgA	    db	'task A ', 0xD, 0xA, 0
+msgB	    db	'task B ', 0xD, 0xA, 0
 msgAX       db  'AX: 0X', 0
 msgNL       db 0xD, 0xA, 0
 
@@ -256,23 +272,23 @@ int9_new:
     dw  0x7c0     ; cs
 
 taskA_context:
-    dw  0   ; flag
+    dw  0       ; flag
     dw  0x7c0   ; cs
     dw  taskA   ; ip
-    dw  0x1100   ; ss   0x10000 - 0x11000
-    dw  0   ; sp
-    dw  0   ; ax
-    dw  0   ; bx
-    dw  0   ; cx
-    dw  0   ; dx
+    dw  0x1100  ; ss   0x10000 - 0x11000
+    dw  0       ; sp
+    dw  0       ; ax
+    dw  0       ; bx
+    dw  0       ; cx
+    dw  0       ; dx
     dw  0x7c0   ; ds
-    dw  0   ; es
-    dw  0   ; si
-    dw  0   ; di
-    dw  0   ; bp
+    dw  0       ; es
+    dw  0       ; si
+    dw  0       ; di
+    dw  0       ; bp
 			
 taskB_context:
-    dw  0   ; flag
+    dw  0       ; flag
     dw  0x7c0   ; cs
     dw  taskB   ; ip
     dw  0x1200  ; ss   0x11000 - 0x12000
@@ -287,8 +303,8 @@ taskB_context:
     dw  0       ; di
     dw  0       ; bp
 
-	times 510-($-$$) db 0           ;填充文件 0.
-	dw 0xAA55                       ;以AA55结束.
+times 510-($-$$) db 0
+dw 0xAA55
 	
 	
 	

@@ -1,6 +1,6 @@
 CFLAGS = -c -Wall -o
 
-all:	kernel
+all:	clean kernel
 
 clean:	
 	rm -f *.bin *.img
