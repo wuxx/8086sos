@@ -150,10 +150,16 @@ end_dloop:
     ret
 
 int9_entry:
+
+    push ax
+    push bx
+    push si
     mov si, msgB
     call write_message
-int9_die:
-    jmp int9_die
+    pop si
+    pop bx
+    pop ax
+
     mov es, [int9_origin+2]
     mov di, [int9_origin+0]
     push es
@@ -260,7 +266,7 @@ msgPIC      db  'pic', 0xD, 0xA, 0
 msgA	    db	'task A ', 0xD, 0xA, 0
 msgB	    db	'task B ', 0xD, 0xA, 0
 msgAX       db  'AX: 0X', 0
-msgNL       db 0xD, 0xA, 0
+msgNL       db  0xD, 0xA, 0
 
 ; 0 - taskA; 1 - taskB
 current_task:
@@ -271,7 +277,7 @@ int9_origin:
     dw 0    ; cs
 int9_new:
     dw  int9_entry  ; ip
-    dw  0x7c0     ; cs
+    dw  0x7c0       ; cs
 
 taskA_context:
     dw  0x200   ; flag, enable irq
