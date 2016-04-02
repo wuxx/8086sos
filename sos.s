@@ -277,8 +277,8 @@ taskA_context:
     dw  0x200   ; flag, enable irq
     dw  0x7c0   ; cs
     dw  taskA   ; ip
-    dw  0x1100  ; ss   0x10000 - 0x11000
-    dw  0       ; sp
+    dw  0x1000  ; ss   0x10000 - 0x11000
+    dw  0xfffc  ; sp
     dw  0       ; ax
     dw  0       ; bx
     dw  0       ; cx
@@ -290,11 +290,11 @@ taskA_context:
     dw  0       ; bp
 			
 taskB_context:
-    dw  0       ; flag
+    dw  0x200   ; flag
     dw  0x7c0   ; cs
     dw  taskB   ; ip
-    dw  0x1200  ; ss   0x11000 - 0x12000
-    dw  0       ; sp
+    dw  0x1100  ; ss   0x11000 - 0x12000
+    dw  0xfffc  ; sp
     dw  0       ; ax
     dw  0       ; bx
     dw  0       ; cx
