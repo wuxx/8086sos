@@ -152,6 +152,8 @@ end_dloop:
 int9_entry:
     mov si, msgB
     call write_message
+int9_die:
+    jmp int9_die
     mov es, [int9_origin+2]
     mov di, [int9_origin+0]
     push es
@@ -272,7 +274,7 @@ int9_new:
     dw  0x7c0     ; cs
 
 taskA_context:
-    dw  0       ; flag
+    dw  0x200   ; flag, enable irq
     dw  0x7c0   ; cs
     dw  taskA   ; ip
     dw  0x1100  ; ss   0x10000 - 0x11000
