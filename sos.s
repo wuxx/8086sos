@@ -144,27 +144,41 @@ dloop:
     sub ax, 1
     cmp ax, 0
     je  end_dloop
+    pusha
+    popa
     jmp dloop
+
 end_dloop:
     pop ax
     ret
 
 int9_entry:
 
-    push ax
-    push bx
     push si
     mov si, msgB
     call write_message
     pop si
-    pop bx
+
+    push ax
+    push dx
+
+    ; read scan code
+    in al, 0x60
+    call print_hex
+
+    ;end of irq
+    mov al, 0x20
+    mov dx, 0x20
+    out dx, al
+
+    pop dx
     pop ax
 
-    push word [int9_origin+2]
-    push word [int9_origin+0]
-    retf
+    ;push word [int9_origin+2]
+    ;push word [int9_origin+0]
+    ;retf ; origin int9 handler will iret.
 
-    iret ; this ins not gonna to be excuted, cause origin int9 handler will iret.
+    iret
 
 ;pic_init:
 ;    cli 
@@ -200,7 +214,7 @@ int9_entry:
 ; -------------------------------------------------------------
 	
 write_message:
-    push ax
+    pusha   ;ax bx cx dx sp bp si di
 again:
     lodsb			; DS:[SI] is read to al
 	cmp	al, 0x0
@@ -211,11 +225,12 @@ again:
 	jmp	again
 	
 end_message:
-    pop ax
+    popa
 	ret
 
 ; print the ax register
 print_hex:
+    pusha
     mov si, msgAX
     call write_message
     
@@ -256,6 +271,7 @@ N0_N9:
     pop ax
     mov si, msgNL
     call write_message
+    popa
     ret
 ; -------------------------------------------------------------	
 
