@@ -160,10 +160,8 @@ int9_entry:
     pop bx
     pop ax
 
-    mov es, [int9_origin+2]
-    mov di, [int9_origin+0]
-    push es
-    push di
+    push word [int9_origin+2]
+    push word [int9_origin+0]
     retf
 
     iret ; this ins not gonna to be excuted, cause origin int9 handler will iret.

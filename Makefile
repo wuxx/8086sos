@@ -8,4 +8,7 @@ clean:
 kernel:
 	nasm -fbin -o kernel.img sos.s
 
+disasm:
+	ndisasm kernel.img | less
+
 
