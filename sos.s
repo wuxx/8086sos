@@ -163,6 +163,7 @@ int9_entry:
     push dx
 
     ; read scan code
+    ; break code = make code | 0x80
     in al, 0x60
     call print_hex
 
