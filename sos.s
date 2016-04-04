@@ -11,14 +11,14 @@ start:
     mov ss, ax
     mov ax, 0x0
     mov sp, ax
-    cli
+    cli ; disable irq
 
     push dword 0x7c0    ; update cs:ip to 0x7c0:ip, for some machine, the default cs is 0x0
     push after_update_cs
     retf
 
 after_update_cs:
-    sti
+    sti ; enable irq
 
     in al, 0x21   ; read from port 0x21
     call print_hex
@@ -30,17 +30,6 @@ after_update_cs:
     nop
     in al, 0x21
     call print_hex
-    ;jmp die
-
-    ;mov ax, 0x12
-    ;call print_hex
-    ;call die 
-    ;call taskA
-    ;push cs
-    ;push taskA
-    ;ret
-
-
 
     ; set new int9
     push es
@@ -152,14 +141,14 @@ end_dloop:
     ret
 
 int9_entry:
+    ; cpu context save
+    pusha
+    push ds
+    push es
+    push ss
 
-    push si
     mov si, msgB
     call write_message
-    pop si
-
-    push ax
-    push dx
 
     ; read scan code
     ; break code = make code | 0x80
@@ -182,13 +171,15 @@ end:
     mov dx, 0x20
     out dx, al
 
-    pop dx
-    pop ax
-
     ;push word [int9_origin+2] cs
     ;push word [int9_origin+0] ip
     ;retf ; origin int9 handler will iret.
 
+    ; cpu context restore
+    pop ss
+    pop es
+    pop ds
+    popa
     iret
 
 ;pic_init:
@@ -286,9 +277,9 @@ N0_N9:
     ret
 ; -------------------------------------------------------------	
 
-msgA	    db	'task A ', 0xD, 0xA, 0
-msgB	    db	'task B ', 0xD, 0xA, 0
-msgAX       db  'AX: 0X', 0
+msgA	    db	'task A', 0xD, 0xA, 0
+msgB	    db	'task B', 0xD, 0xA, 0
+msgAX       db  'AX:0X', 0
 msgNL       db  0xD, 0xA, 0
 
 ; 0 - taskA; 1 - taskB
