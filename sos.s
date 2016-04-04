@@ -18,9 +18,6 @@ start:
     retf
 
 after_update_cs:
-    mov si, bootmsg
-    call write_message
-
     sti
 
     in al, 0x21   ; read from port 0x21
@@ -68,61 +65,63 @@ after_update_cs:
     rep movsw
     pop es
 
-    ;mov [current_task], word 0x0
-
 ;die:
 ;   jmp die
 
+    mov [current_task], word 0x0 ; indicate taskA
+    jmp  run
+
 run:
-    mov ax, [current_task]
-    cmp ax, 0
-    je  run_taskA
-    jmp run_taskB
+; 26 flag
+; 24 cs
+; 22 ip    --- cpu auto save 
+; 20 ax
+; 18 cx
+; 16 dx
+; 14 bx
+; 12 sp    (the sp before pusha)
+; 10 bp
+;  8 si
+;  6 di    --- inst pusha save
+;  4 ds    --- push ds
+;  2 es    --- push es
+;  0 ss    --- push ss
+    ; prepare taskB
+    mov ss, [taskA_context +  0]
+    mov es, [taskA_context +  2]
+    mov ds, [taskA_context +  4]
+    mov di, [taskA_context +  6]
+    mov si, [taskA_context +  8]
+    mov bp, [taskA_context + 10]
+    mov sp, [taskA_context + 12]
+    mov bx, [taskA_context + 14]
+    mov dx, [taskA_context + 16]
+    mov cx, [taskA_context + 18]
+    mov ax, [taskA_context + 20]
+    push word [taskB_context + 26]  ;flag
+    push word [taskB_context + 24]  ;cs
+    push word [taskB_context + 22]  ;ip
+    pusha
+    push ds
+    push es
+    push ss
 
-run_taskA:
-    mov bp, [taskA_context+26]
-    mov di, [taskA_context+24]
-    mov si, [taskA_context+22]
-    mov es, [taskA_context+20]
-    mov ds, [taskA_context+18]
-    mov dx, [taskA_context+16]
-    mov cx, [taskA_context+14]
-    mov bx, [taskA_context+12]
-    mov ax, [taskA_context+10]
-    mov sp, [taskA_context+8]
-    mov ss, [taskA_context+6]
+    mov ss, [taskA_context +  0]
+    mov es, [taskA_context +  2]
+    mov ds, [taskA_context +  4]
+    mov di, [taskA_context +  6]
+    mov si, [taskA_context +  8]
+    mov bp, [taskA_context + 10]
+    mov sp, [taskA_context + 12]
+    mov bx, [taskA_context + 14]
+    mov dx, [taskA_context + 16]
+    mov cx, [taskA_context + 18]
+    mov ax, [taskA_context + 20]
 
-    ;mov flag, [taskA_context+0]
-    ;mov cs, [taskA_context+2]
-    ;mov ip, [taskA_context+4]
-    push dword [taskA_context+0]  ;flag
-    popf
-    push dword [taskA_context+2]  ;cs
-    push dword [taskA_context+4]  ;ip
-    ret
-
-
-run_taskB:
-    mov bp, [taskB_context+26]
-    mov di, [taskB_context+24]
-    mov si, [taskB_context+22]
-    mov es, [taskB_context+20]
-    mov ds, [taskB_context+18]
-    mov dx, [taskB_context+16]
-    mov cx, [taskB_context+14]
-    mov bx, [taskB_context+12]
-    mov ax, [taskB_context+10]
-    mov sp, [taskB_context+8]
-    mov ss, [taskB_context+6]
-
-    ;mov flag, [taskB_context+0]
-    ;mov cs, [taskB_context+2]
-    ;mov ip, [taskB_context+4]
-    push dword [taskB_context+0]  ;flag
-    popf
-    push dword [taskB_context+2]  ;cs
-    push dword [taskB_context+4]  ;ip
-    ret
+    push word [taskA_context + 26]  ;flag
+    push word [taskA_context + 24]  ;cs
+    push word [taskA_context + 22]  ;ip
+    iret
 
 taskA:
     mov si, msgA
@@ -165,8 +164,19 @@ int9_entry:
     ; read scan code
     ; break code = make code | 0x80
     in al, 0x60
+    and ax, 0x0080
+    jz  kmake
+    jmp kbreak
+
+kmake:  ; make code
+    call print_hex
+    jmp end
+
+kbreak: ; break code
+    mov ax, 0xb
     call print_hex
 
+end:
     ;end of irq
     mov al, 0x20
     mov dx, 0x20
@@ -175,8 +185,8 @@ int9_entry:
     pop dx
     pop ax
 
-    ;push word [int9_origin+2]
-    ;push word [int9_origin+0]
+    ;push word [int9_origin+2] cs
+    ;push word [int9_origin+0] ip
     ;retf ; origin int9 handler will iret.
 
     iret
@@ -276,8 +286,6 @@ N0_N9:
     ret
 ; -------------------------------------------------------------	
 
-bootmsg     db  'start', 0xD, 0xA, 0
-msgPIC      db  'pic', 0xD, 0xA, 0
 msgA	    db	'task A ', 0xD, 0xA, 0
 msgB	    db	'task B ', 0xD, 0xA, 0
 msgAX       db  'AX: 0X', 0
@@ -294,37 +302,54 @@ int9_new:
     dw  int9_entry  ; ip
     dw  0x7c0       ; cs
 
+; cpu context:
+; 26 flag
+; 24 cs
+; 22 ip    --- cpu auto save 
+; 20 ax
+; 18 cx
+; 16 dx
+; 14 bx
+; 12 sp    (the sp before pusha)
+; 10 bp
+;  8 si
+;  6 di    --- inst pusha save
+;  4 ds    --- push ds
+;  2 es    --- push es
+;  0 ss    --- push ss
 taskA_context:
-    dw  0x200   ; flag, enable irq
-    dw  0x7c0   ; cs
-    dw  taskA   ; ip
     dw  0x1000  ; ss   0x10000 - 0x11000
-    dw  0xfffc  ; sp
-    dw  0       ; ax
-    dw  0       ; bx
-    dw  0       ; cx
-    dw  0       ; dx
-    dw  0x7c0   ; ds
     dw  0       ; es
-    dw  0       ; si
+    dw  0x7c0   ; ds
     dw  0       ; di
+    dw  0       ; si
     dw  0       ; bp
-			
-taskB_context:
-    dw  0x200   ; flag
+    dw  0xfffc  ; sp
+    dw  0       ; bx
+    dw  0       ; dx
+    dw  0       ; cx
+    dw  0       ; ax
+
+    dw  taskA   ; ip
     dw  0x7c0   ; cs
-    dw  taskB   ; ip
+    dw  0x200   ; flag, enable irq
+
+taskB_context:
     dw  0x1100  ; ss   0x11000 - 0x12000
-    dw  0xfffc  ; sp
-    dw  0       ; ax
-    dw  0       ; bx
-    dw  0       ; cx
-    dw  0       ; dx
-    dw  0x7c0   ; ds
     dw  0       ; es
-    dw  0       ; si
+    dw  0x7c0   ; ds
     dw  0       ; di
+    dw  0       ; si
     dw  0       ; bp
+    dw  0xfffc  ; sp
+    dw  0       ; bx
+    dw  0       ; dx
+    dw  0       ; cx
+    dw  0       ; ax
+
+    dw  taskB   ; ip
+    dw  0x7c0   ; cs
+    dw  0x200   ; flag, enable irq
 
 times 510-($-$$) db 0
 dw 0xAA55
