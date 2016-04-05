@@ -57,7 +57,6 @@ after_update_cs:
 ;die:
 ;   jmp die
 
-    mov [current_task], word 0x0 ; indicate taskA
     jmp  run
 
 run:
@@ -76,17 +75,17 @@ run:
 ;  2 es    --- push es
 ;  0 ss    --- push ss
     ; prepare taskB
-    mov ss, [taskA_context +  0]
-    mov es, [taskA_context +  2]
-    mov ds, [taskA_context +  4]
-    mov di, [taskA_context +  6]
-    mov si, [taskA_context +  8]
-    mov bp, [taskA_context + 10]
-    mov sp, [taskA_context + 12]
-    mov bx, [taskA_context + 14]
-    mov dx, [taskA_context + 16]
-    mov cx, [taskA_context + 18]
-    mov ax, [taskA_context + 20]
+    mov ss, [taskB_context +  0]
+    mov es, [taskB_context +  2]
+    mov ds, [taskB_context +  4]
+    mov di, [taskB_context +  6]
+    mov si, [taskB_context +  8]
+    mov bp, [taskB_context + 10]
+    mov sp, [taskB_context + 12]
+    mov bx, [taskB_context + 14]
+    mov dx, [taskB_context + 16]
+    mov cx, [taskB_context + 18]
+    mov ax, [taskB_context + 20]
     push word [taskB_context + 26]  ;flag
     push word [taskB_context + 24]  ;cs
     push word [taskB_context + 22]  ;ip
@@ -94,6 +93,8 @@ run:
     push ds
     push es
     push ss
+    mov [next_task+0], ss
+    mov [next_task+2], sp
 
     mov ss, [taskA_context +  0]
     mov es, [taskA_context +  2]
@@ -110,7 +111,9 @@ run:
     push word [taskA_context + 26]  ;flag
     push word [taskA_context + 24]  ;cs
     push word [taskA_context + 22]  ;ip
-    iret
+
+    mov [current_taskid], ss ; indicate taskA
+    iret    ; kick the taskA
 
 taskA:
     mov si, msgA
@@ -158,12 +161,21 @@ int9_entry:
     jmp kbreak
 
 kmake:  ; make code
-    call print_hex
+    ;call print_hex
+    mov ax, [next_task+0]
+    mov bx, [next_task+2]
+
+    mov [next_task+0], ss
+    mov [next_task+2], sp
+    mov ss, ax
+    mov sp, bx
+
+    mov [current_taskid], ss
     jmp end
 
 kbreak: ; break code
-    mov ax, 0xb
-    call print_hex
+    ;mov ax, 0xb
+    ;call print_hex
 
 end:
     ;end of irq
@@ -283,7 +295,7 @@ msgAX       db  'AX:0X', 0
 msgNL       db  0xD, 0xA, 0
 
 ; 0 - taskA; 1 - taskB
-current_task:
+current_taskid:
 	dw 0x0
 
 int9_origin:
@@ -292,6 +304,10 @@ int9_origin:
 int9_new:
     dw  int9_entry  ; ip
     dw  0x7c0       ; cs
+
+next_task:
+    dw 0x0  ; ss
+    dw 0x0  ; sp
 
 ; cpu context:
 ; 26 flag
