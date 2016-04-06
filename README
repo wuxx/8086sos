@@ -1,4 +1,6 @@
 A simple os on 8086 for my GF to learn assembly language and OS.
-It's very simple and special since it can do the task switch, to make it, just press the 's'on your keyboard!!!
+It's very simple and special since it can do the task switch, to make it, just press any key on your keyboard!!!
+
+to run the 8086sos, you can use bochs, qemu, virtualbox vmware, real pc or any x86 machine
 
 

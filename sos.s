@@ -20,18 +20,7 @@ start:
 after_update_cs:
     sti ; enable irq
 
-    in al, 0x21   ; read from port 0x21
-    call print_hex
-
-    mov al, 0x00
-    out 0x21, al
-
-    nop
-    nop
-    in al, 0x21
-    call print_hex
-
-    ; set new int9
+    ; bakup old int9
     push es
     push ds
     mov ax, 0x0
@@ -43,6 +32,7 @@ after_update_cs:
     cld
     rep movsw	; ds:si -> es:di
 
+    ; set new int9
     pop ds
     mov si, int9_new
 
@@ -130,7 +120,6 @@ taskB:
 delay:
     push ax
     mov ax, 0xFFFF
-
 dloop:
     sub ax, 1
     cmp ax, 0
@@ -138,7 +127,6 @@ dloop:
     pusha
     popa
     jmp dloop
-
 end_dloop:
     pop ax
     ret
@@ -193,39 +181,6 @@ end:
     pop ds
     popa
     iret
-
-;pic_init:
-;    cli 
-;    mov al, 0x11            ; initialize PICs
-;
-;    out 0x20, al            ; 8259_MASTER
-;    out 0xA0, al            ; 8259_SLAVE
-;
-;    mov al,   0x20          ; interrupt start 32
-;    out 0x21, al
-;
-;    mov al,   0x28          ; interrupt start 40
-;    out 0xA1, al
-;
-;    mov al,   0x04          ; IRQ 2 of 8259_MASTER
-;    out 0x21, al    
-;
-;    mov al,   0x02          ; to 8259_SLAVE
-;    out 0xA1, al
-;
-;    mov al,   0x01          ; 8086 Mode
-;    out 0x21, al
-;    out 0xA1, al
-;
-;    mov al,   0xFF          ; mask all
-;    out 0x21, al
-;    out 0xA1, al
-;    sti 
-;    
-;    mov si, msgPIC
-;    call    write_message
-
-; -------------------------------------------------------------
 	
 write_message:
     pusha   ;ax bx cx dx sp bp si di
@@ -247,7 +202,6 @@ print_hex:
     pusha
     mov si, msgAX
     call write_message
-    
     
     push ax
     ; ah
@@ -309,21 +263,6 @@ next_task:
     dw 0x0  ; ss
     dw 0x0  ; sp
 
-; cpu context:
-; 26 flag
-; 24 cs
-; 22 ip    --- cpu auto save 
-; 20 ax
-; 18 cx
-; 16 dx
-; 14 bx
-; 12 sp    (the sp before pusha)
-; 10 bp
-;  8 si
-;  6 di    --- inst pusha save
-;  4 ds    --- push ds
-;  2 es    --- push es
-;  0 ss    --- push ss
 taskA_context:
     dw  0x1000  ; ss   0x10000 - 0x11000
     dw  0       ; es
