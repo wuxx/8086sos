@@ -20,7 +20,7 @@ start:
 after_update_cs:
     sti ; enable irq
 
-    ; bakup old int9
+    ; bakup old int9 entry
     push es
     push ds
     mov ax, 0x0
@@ -32,7 +32,7 @@ after_update_cs:
     cld
     rep movsw	; ds:si -> es:di
 
-    ; set new int9
+    ; set new int9 entry
     pop ds
     mov si, int9_new
 
@@ -43,9 +43,6 @@ after_update_cs:
     cld
     rep movsw
     pop es
-
-;die:
-;   jmp die
 
     jmp  run
 
@@ -86,6 +83,7 @@ run:
     mov [next_task+0], ss
     mov [next_task+2], sp
 
+    ; prepare taskA and run it
     mov ss, [taskA_context +  0]
     mov es, [taskA_context +  2]
     mov ds, [taskA_context +  4]
@@ -137,9 +135,6 @@ int9_entry:
     push ds
     push es
     push ss
-
-    mov si, msgB
-    call write_message
 
     ; read scan code
     ; break code = make code | 0x80
@@ -299,6 +294,4 @@ taskB_context:
 
 times 510-($-$$) db 0
 dw 0xAA55
-	
-	
 	
