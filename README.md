@@ -3,4 +3,4 @@ It's very simple and special since it can do the task switch, to make it, just p
 
 to run the 8086sos, you can use bochs, qemu, virtualbox, vmware, even real pc, whatever, any x86 machine can run it.
 
-![screenshot](wuxx.github.com/8086sos/screenshot.png)
+![screenshot](8086sos/screenshot.png)
